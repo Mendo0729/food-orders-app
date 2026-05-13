@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+
+<main class="container py-5">
+  <div class="row align-items-center g-5">
+    <div class="col-lg-7">
+      <p class="eyebrow"><%= isNotFound ? 'Error 404' : 'Nuestra actividad' %></p>
+      <h1 class="fw-bold mb-3"><%= title %></h1>
+      <p class="lead"><%= description %></p>
+      <p class="text-muted">
+        La actividad busca reunir a familiares, amigos y vecinos en un ambiente agradable. Los pedidos anticipados nos ayudan a organizar mejor la cocina, evitar desperdicios y entregar cada plato a tiempo.
+      </p>
+      <a href="<%= isNotFound ? '/' : '/pedidos' %>" class="btn btn-brand">
+        <%= isNotFound ? 'Volver al inicio' : 'Hacer un pedido' %>
+      </a>
+    </div>
+    <div class="col-lg-5">
+      <div class="info-box">
+        <h2 class="h4 fw-bold">Detalles</h2>
+        <ul class="list-unstyled mb-0">
+          <li>Comida preparada para el evento</li>
+          <li>Pedidos con nombre y celular</li>
+          <li>Menu flexible por cantidades</li>
+          <li>Panel privado para organizadores</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>

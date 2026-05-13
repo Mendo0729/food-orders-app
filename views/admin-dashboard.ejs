@@ -1,0 +1,52 @@
+<%- include('partials/header') %>
+
+<main class="container-fluid py-4 px-lg-5">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <p class="eyebrow">Administrador</p>
+      <h1 class="h2 fw-bold mb-0">Pedidos recibidos</h1>
+    </div>
+    <form action="/admin/logout" method="POST">
+      <button class="btn btn-outline-brand" type="submit">Cerrar sesion</button>
+    </form>
+  </div>
+
+  <div class="table-responsive dashboard-table">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Celular</th>
+          <th>Platos</th>
+          <th>Total</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (orders.length === 0) { %>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-5">Todavia no hay pedidos registrados.</td>
+          </tr>
+        <% } %>
+
+        <% orders.forEach((order) => { %>
+          <tr>
+            <td class="fw-semibold"><%= order.customer_name %></td>
+            <td><%= order.phone %></td>
+            <td>
+              <ul class="list-unstyled mb-0">
+                <% order.items.forEach((item) => { %>
+                  <li><%= item.dish %> x <%= item.quantity %></li>
+                <% }) %>
+              </ul>
+            </td>
+            <td class="fw-bold">$<%= Number(order.total).toFixed(2) %></td>
+            <td><%= new Date(order.created_at).toLocaleString('es-PA') %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<%- include('partials/footer') %>

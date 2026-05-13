@@ -1,0 +1,53 @@
+<%- include('partials/header') %>
+
+<main>
+  <section class="hero-section">
+    <div class="container py-5">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-7">
+          <p class="eyebrow mb-3">Actividad especial de comida</p>
+          <h1 class="display-5 fw-bold mb-3">Bienvenido a Sabores Evento</h1>
+          <p class="lead mb-4">
+            Haz tu pedido con anticipacion y disfruta platos preparados para compartir durante nuestra actividad.
+          </p>
+          <div class="d-flex flex-column flex-sm-row gap-3">
+            <a href="/pedidos" class="btn btn-brand btn-lg">Hacer pedido</a>
+            <a href="/about" class="btn btn-outline-brand btn-lg">Ver informacion</a>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="hero-card">
+            <span class="hero-icon">🍽</span>
+            <h2 class="h4 fw-bold">Menu variado</h2>
+            <p>Selecciona varios platos, ajusta cantidades y registra tu pedido en pocos pasos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container py-5">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="feature-card h-100">
+          <h2 class="h5">Pedidos simples</h2>
+          <p>Formulario rapido para nombre, celular y cantidades por plato.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card h-100">
+          <h2 class="h5">Control claro</h2>
+          <p>El equipo organizador puede revisar pedidos, totales y fechas desde el panel admin.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card h-100">
+          <h2 class="h5">Listo para desplegar</h2>
+          <p>Preparado para Render con PostgreSQL en Supabase y variables de entorno.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('partials/footer') %>
