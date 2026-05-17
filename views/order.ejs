@@ -1,136 +1,131 @@
 <%- include('partials/header') %>
 
 <main class="marketplace-page">
-  <section class="marketplace-hero py-4 py-lg-5">
+  <section class="marketplace-hero py-5">
     <div class="container">
-      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3">
-        <div>
-          <p class="eyebrow mb-2">Marketplace del evento</p>
-          <h1 class="fw-bold mb-2">Elige tus platos favoritos</h1>
-          <p class="text-muted mb-0">Agrega productos al carrito, ajusta cantidades y confirma tu pedido.</p>
+      <div class="row align-items-end g-4">
+        <div class="col-lg-8">
+          <p class="eyebrow gold pattern-title mb-3">Iglesia Episcopal de Cristo a la Orilla del Mar</p>
+          <h1 class="display-title compact mb-3">Comida afroantillana</h1>
+          <p class="hero-subtitle mb-0">Selecciona el Menu Principal Afroantillano y agrega los productos especiales que deseas reservar.</p>
         </div>
-        <a href="#cart" class="btn btn-brand cart-jump">
-          Carrito
-          <span class="badge text-bg-light ms-2"><%= cartCount %></span>
-        </a>
       </div>
     </div>
   </section>
 
-  <section class="container py-4">
-    <% if (success) { %>
-      <div class="alert alert-success">Pedido registrado correctamente. Gracias por apoyar la actividad.</div>
-    <% } %>
+  <section class="marketplace-shell py-5">
+    <div class="container">
+      <% if (success) { %>
+        <div class="alert alert-success">Pedido registrado correctamente. Gracias por apoyar la actividad.</div>
+      <% } %>
 
-    <% if (error) { %>
-      <div class="alert alert-danger"><%= error %></div>
-    <% } %>
+      <% if (error) { %>
+        <div class="alert alert-danger"><%= error %></div>
+      <% } %>
 
-    <div class="row g-4 align-items-start">
-      <div class="col-lg-8">
-        <div class="market-toolbar mb-3">
-          <div>
-            <h2 class="h4 fw-bold mb-1">Menu disponible</h2>
-            <span class="text-muted"><%= dishes.length %> opciones listas para ordenar</span>
-          </div>
-        </div>
+      <form id="orderForm" action="/pedidos" method="POST" class="order-form">
+        <div class="row g-4 align-items-start">
+          <div class="col-lg-8">
+            <div class="section-heading text-center mb-4">
+              <p class="eyebrow gold">Menu disponible</p>
+              <h2>Sabores de nuestra comunidad</h2>
+            </div>
 
-        <div class="row g-3">
-          <% dishes.forEach((dish, index) => { %>
-            <div class="col-md-6">
-              <article class="market-card h-100">
-                <div class="dish-thumb dish-thumb-<%= (index % 5) + 1 %>">
-                  <span><%= ['🍗', '🍝', '🍔', '🌮', '🥗'][index % 5] %></span>
-                </div>
-                <div class="market-card-body">
-                  <div class="d-flex justify-content-between gap-3">
-                    <div>
-                      <h3 class="h5 fw-bold mb-1"><%= dish.name %></h3>
-                      <p class="text-muted small mb-3"><%= dish.description %></p>
-                    </div>
-                    <strong class="price">$<%= Number(dish.price).toFixed(2) %></strong>
+            <div class="menu-sections">
+              <% dishGroups.forEach((group) => { %>
+                <section class="menu-section">
+                  <div class="menu-section-heading">
+                    <h3><%= group.label %></h3>
                   </div>
 
-                  <form action="/pedidos/carrito/agregar" method="POST" class="add-cart-form">
-                    <input type="hidden" name="dish_id" value="<%= dish.id %>">
-                    <div class="input-group">
-                      <button type="button" class="btn btn-outline-brand quantity-step" data-step="-1" aria-label="Reducir cantidad">-</button>
-                      <input type="number" min="1" step="1" class="form-control text-center marketplace-quantity" name="quantity" value="1" aria-label="Cantidad">
-                      <button type="button" class="btn btn-outline-brand quantity-step" data-step="1" aria-label="Aumentar cantidad">+</button>
-                      <button type="submit" class="btn btn-brand">Agregar</button>
-                    </div>
-                  </form>
-                </div>
-              </article>
-            </div>
-          <% }) %>
-        </div>
-      </div>
+                  <div class="menu-items-grid">
+                    <% group.dishes.forEach((dish) => { %>
+                      <%
+                        const hasQuantity = Object.prototype.hasOwnProperty.call(quantities, dish.id);
+                        const rawQuantityValue = hasQuantity ? Number(quantities[dish.id]) : (dish.is_main_menu ? 1 : 0);
+                        const quantityValue = dish.is_main_menu ? Math.max(1, rawQuantityValue || 0) : rawQuantityValue;
+                      %>
+                      <article class="order-dish <%= dish.is_main_menu ? 'main-menu-dish' : '' %>">
+                        <div class="order-dish-content">
+                          <div>
+                            <h4><%= dish.name %></h4>
+                            <% if (dish.description) { %>
+                              <p><%= dish.description %></p>
+                            <% } %>
+                          </div>
 
-      <aside class="col-lg-4" id="cart">
-        <div class="cart-panel">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-              <p class="eyebrow mb-1">Tu carrito</p>
-              <h2 class="h4 fw-bold mb-0"><%= cartCount %> producto<%= cartCount === 1 ? '' : 's' %></h2>
-            </div>
-            <% if (cartItems.length > 0) { %>
-              <form action="/pedidos/carrito/vaciar" method="POST">
-                <button class="btn btn-sm btn-link text-danger text-decoration-none" type="submit">Vaciar</button>
-              </form>
-            <% } %>
-          </div>
+                          <div class="order-dish-price">
+                            <% if (dish.price === null) { %>
+                              <span>Consultar</span>
+                            <% } else { %>
+                              <strong>$<%= Number(dish.price).toFixed(2) %></strong>
+                            <% } %>
+                          </div>
+                        </div>
 
-          <% if (cartItems.length === 0) { %>
-            <div class="empty-cart">
-              <strong>Tu carrito esta vacio</strong>
-              <p class="text-muted mb-0">Agrega platos del menu para preparar tu pedido.</p>
-            </div>
-          <% } else { %>
-            <div class="cart-items">
-              <% cartItems.forEach((item) => { %>
-                <div class="cart-item">
-                  <div>
-                    <h3 class="h6 fw-bold mb-1"><%= item.dish.name %></h3>
-                    <span class="text-muted small">$<%= Number(item.dish.price).toFixed(2) %> c/u</span>
+                        <div class="order-dish-actions">
+                          <% if (dish.category === 'Adicional') { %>
+                            <label class="form-check add-on-check" for="enable_<%= dish.id %>">
+                              <input class="form-check-input addon-toggle" type="checkbox" id="enable_<%= dish.id %>" data-target="quantity_<%= dish.id %>" <%= Number(quantities[dish.id] || 0) > 0 ? 'checked' : '' %>>
+                              <span>Agregar</span>
+                            </label>
+                          <% } %>
+
+                          <label for="quantity_<%= dish.id %>" class="quantity-label">Cantidad</label>
+                          <div class="quantity-pill" data-min="<%= dish.is_main_menu ? 1 : 0 %>">
+                            <button type="button" class="quantity-step" data-step="-1" aria-label="Reducir cantidad">-</button>
+                            <input
+                              type="number"
+                              min="<%= dish.is_main_menu ? 1 : 0 %>"
+                              step="1"
+                              class="marketplace-quantity priced-quantity <%= dish.is_main_menu ? 'main-menu-quantity' : '' %>"
+                              id="quantity_<%= dish.id %>"
+                              name="quantities[<%= dish.id %>]"
+                              value="<%= quantityValue %>"
+                              data-price="<%= dish.price === null ? '' : Number(dish.price) %>"
+                              data-min="<%= dish.is_main_menu ? 1 : 0 %>"
+                              data-dish-name="<%= dish.name %>"
+                              aria-label="Cantidad de <%= dish.name %>"
+                            >
+                            <button type="button" class="quantity-step" data-step="1" aria-label="Aumentar cantidad">+</button>
+                          </div>
+                        </div>
+                      </article>
+                    <% }) %>
                   </div>
-
-                  <div class="cart-item-actions">
-                    <form action="/pedidos/carrito/actualizar" method="POST" class="cart-quantity-form">
-                      <input type="hidden" name="dish_id" value="<%= item.dish.id %>">
-                      <input type="number" min="0" step="1" class="form-control form-control-sm" name="quantity" value="<%= item.quantity %>" aria-label="Cantidad de <%= item.dish.name %>">
-                      <button class="btn btn-sm btn-outline-brand" type="submit">Actualizar</button>
-                    </form>
-                    <form action="/pedidos/carrito/eliminar" method="POST">
-                      <input type="hidden" name="dish_id" value="<%= item.dish.id %>">
-                      <button class="btn btn-sm btn-link text-danger text-decoration-none" type="submit">Quitar</button>
-                    </form>
-                  </div>
-                </div>
+                </section>
               <% }) %>
             </div>
-          <% } %>
-
-          <div class="cart-total">
-            <span>Total</span>
-            <strong>$<%= Number(cartTotal).toFixed(2) %></strong>
           </div>
 
-          <form id="checkoutForm" action="/pedidos" method="POST" class="checkout-form">
-            <div class="mb-3">
-              <label for="customer_name" class="form-label">Nombre del cliente</label>
-              <input type="text" class="form-control" id="customer_name" name="customer_name" value="<%= formData.customer_name || '' %>" required>
+          <aside class="col-lg-4">
+            <div class="cart-panel order-summary-panel">
+              <p class="eyebrow gold mb-1">Datos del pedido</p>
+              <h2 class="h4 fw-bold mb-3">Reserva</h2>
+
+              <div class="mb-3">
+                <label for="customer_name" class="form-label">Nombre del cliente</label>
+                <input type="text" class="form-control" id="customer_name" name="customer_name" value="<%= formData.customer_name || '' %>" required>
+              </div>
+
+              <div class="mb-3">
+                <label for="phone" class="form-label">Numero celular</label>
+                <input type="tel" class="form-control" id="phone" name="phone" value="<%= formData.phone || '' %>" required>
+              </div>
+
+              <div class="order-estimate">
+                <div class="cart-total">
+                  <span>Total estimado</span>
+                  <strong id="orderTotal">$0.00</strong>
+                </div>
+                <p class="summary-note mb-0">Los productos marcados como Consultar se confirman al coordinar el pedido.</p>
+              </div>
+
+              <button type="submit" class="btn btn-gold w-100 mt-3">Confirmar pedido</button>
             </div>
-            <div class="mb-3">
-              <label for="phone" class="form-label">Numero celular</label>
-              <input type="tel" class="form-control" id="phone" name="phone" value="<%= formData.phone || '' %>" required>
-            </div>
-            <button type="submit" class="btn btn-brand w-100" <%= cartItems.length === 0 ? 'disabled' : '' %>>
-              Confirmar pedido
-            </button>
-          </form>
+          </aside>
         </div>
-      </aside>
+      </form>
     </div>
   </section>
 </main>

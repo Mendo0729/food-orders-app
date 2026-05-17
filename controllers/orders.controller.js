@@ -1,212 +1,184 @@
-const db = require('../config/db');
+const { dishes } = require('../data/menu');
+const sheetsService = require('../services/google-sheets.service');
 
-function getCart(req) {
-  if (!req.session.cart) {
-    req.session.cart = {};
+const CATEGORY_ORDER = [
+  'Adicional',
+  'Comidas Especiales',
+  'Bebidas',
+  'Tortas',
+  'Postres',
+  'Paties'
+];
+
+const CATEGORY_LABELS = {
+  Tortas: 'Dulces / Tortas'
+};
+
+function getCategoryRank(group) {
+  if (group.dishes.some((dish) => dish.is_main_menu)) {
+    return 1;
   }
 
-  return req.session.cart;
+  const categoryIndex = CATEGORY_ORDER.indexOf(group.name);
+  return categoryIndex === -1 ? 99 : categoryIndex + 2;
 }
 
-function getFormData(req) {
-  return req.session.checkoutData || {};
+function getActiveDishes() {
+  return dishes;
 }
 
-async function getActiveDishes() {
-  const { rows } = await db.query(
-    'SELECT id, name, description, price FROM dishes WHERE is_active = true ORDER BY id'
-  );
+function groupDishesByCategory(activeDishes) {
+  const groupsByName = new Map();
 
-  return rows;
+  activeDishes.forEach((dish) => {
+    if (!groupsByName.has(dish.category)) {
+      groupsByName.set(dish.category, {
+        name: dish.category,
+        label: CATEGORY_LABELS[dish.category] || dish.category,
+        dishes: []
+      });
+    }
+
+    groupsByName.get(dish.category).dishes.push(dish);
+  });
+
+  return [...groupsByName.values()].sort((left, right) => {
+    const rankDifference = getCategoryRank(left) - getCategoryRank(right);
+    return rankDifference === 0 ? left.name.localeCompare(right.name, 'es') : rankDifference;
+  });
 }
 
-function buildCartItems(cart, dishes) {
-  const dishesById = new Map(dishes.map((dish) => [String(dish.id), dish]));
+function parseQuantities(body) {
+  const rawQuantities = body.quantities || {};
 
-  return Object.entries(cart)
+  return Object.entries(rawQuantities).reduce((quantities, [dishId, value]) => {
+    const normalizedValue = String(value || '').trim();
+    const quantity = normalizedValue === '' ? 0 : Number(normalizedValue);
+    quantities[dishId] = Number.isNaN(quantity) ? -1 : quantity;
+    return quantities;
+  }, {});
+}
+
+function enforceMainMenuQuantity(quantities, activeDishes) {
+  const mainMenu = activeDishes.find((dish) => dish.is_main_menu);
+
+  if (!mainMenu) {
+    return quantities;
+  }
+
+  if (!Number.isInteger(quantities[mainMenu.id]) || quantities[mainMenu.id] < 1) {
+    quantities[mainMenu.id] = 1;
+  }
+
+  return quantities;
+}
+
+function buildSelectedItems(quantities, activeDishes) {
+  const dishesById = new Map(activeDishes.map((dish) => [String(dish.id), dish]));
+
+  return Object.entries(quantities)
     .map(([dishId, quantity]) => {
       const dish = dishesById.get(String(dishId));
 
-      if (!dish) {
+      if (!dish || quantity <= 0) {
         return null;
       }
 
-      const parsedQuantity = Number.parseInt(quantity, 10) || 0;
-
-      if (parsedQuantity <= 0) {
-        return null;
-      }
+      const unitPrice = dish.price === null ? null : Number(dish.price);
+      const subtotal = unitPrice === null ? null : unitPrice * quantity;
 
       return {
-        dish,
-        quantity: parsedQuantity,
-        subtotal: Number(dish.price) * parsedQuantity
+        dish_id: dish.id,
+        dish: dish.name,
+        category: dish.category,
+        quantity,
+        unit_price: unitPrice,
+        subtotal
       };
     })
     .filter(Boolean);
 }
 
-function getCartTotal(cartItems) {
-  return cartItems.reduce((sum, item) => sum + item.subtotal, 0);
+function getOrderTotal(items) {
+  return items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
 }
 
-function redirectToOrders(req, res) {
-  return res.redirect('/pedidos#cart');
+function hasInvalidQuantity(quantities) {
+  return Object.values(quantities).some((quantity) => !Number.isInteger(quantity) || quantity < 0);
 }
 
-async function showOrderForm(req, res, next) {
-  try {
-    const dishes = await getActiveDishes();
-    const cart = getCart(req);
-    const cartItems = buildCartItems(cart, dishes);
+function renderOrderForm(res, options) {
+  const activeDishes = getActiveDishes();
 
-    res.render('order', {
-      title: 'Marketplace de comida',
-      dishes,
-      error: null,
-      success: req.query.success === '1',
-      cartItems,
-      cartTotal: getCartTotal(cartItems),
-      cartCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-      formData: getFormData(req)
-    });
-  } catch (error) {
-    next(error);
-  }
+  return res.status(options.status || 200).render('order', {
+    title: 'Pedidos afroantillanos',
+    dishes: activeDishes,
+    dishGroups: groupDishesByCategory(activeDishes),
+    error: options.error || null,
+    success: options.success || false,
+    formData: options.formData || {},
+    quantities: enforceMainMenuQuantity(options.quantities || {}, activeDishes)
+  });
 }
 
-async function addToCart(req, res, next) {
-  const dishId = Number.parseInt(req.body.dish_id, 10);
-  const quantity = Number.parseInt(req.body.quantity, 10) || 1;
-
-  try {
-    const { rows } = await db.query(
-      'SELECT id FROM dishes WHERE id = $1 AND is_active = true',
-      [dishId]
-    );
-
-    if (rows.length === 0) {
-      return redirectToOrders(req, res);
-    }
-
-    const cart = getCart(req);
-    cart[dishId] = (Number.parseInt(cart[dishId], 10) || 0) + Math.max(quantity, 1);
-
-    return redirectToOrders(req, res);
-  } catch (error) {
-    next(error);
-  }
-}
-
-function updateCartItem(req, res) {
-  const dishId = Number.parseInt(req.body.dish_id, 10);
-  const quantity = Number.parseInt(req.body.quantity, 10) || 0;
-  const cart = getCart(req);
-
-  if (quantity <= 0) {
-    delete cart[dishId];
-  } else {
-    cart[dishId] = quantity;
-  }
-
-  return redirectToOrders(req, res);
-}
-
-function removeCartItem(req, res) {
-  const dishId = Number.parseInt(req.body.dish_id, 10);
-  const cart = getCart(req);
-
-  delete cart[dishId];
-
-  return redirectToOrders(req, res);
-}
-
-function clearCart(req, res) {
-  req.session.cart = {};
-
-  return redirectToOrders(req, res);
+function showOrderForm(req, res) {
+  return renderOrderForm(res, {
+    success: req.query.success === '1'
+  });
 }
 
 async function createOrder(req, res, next) {
-  const { customer_name, phone } = req.body;
+  const customerName = (req.body.customer_name || '').trim();
+  const phone = (req.body.phone || '').trim();
+  const activeDishes = getActiveDishes();
+  const quantities = enforceMainMenuQuantity(parseQuantities(req.body), activeDishes);
+  const selectedItems = buildSelectedItems(quantities, activeDishes);
+  const total = getOrderTotal(selectedItems);
+  const formData = { customer_name: customerName, phone };
 
   try {
-    const dishes = await getActiveDishes();
-    const cart = getCart(req);
-    const selectedItems = buildCartItems(cart, dishes);
-    const cartTotal = getCartTotal(selectedItems);
-    const cartCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
-
-    if (!customer_name || !phone) {
-      req.session.checkoutData = { customer_name, phone };
-
-      return res.status(400).render('order', {
-        title: 'Marketplace de comida',
-        dishes,
+    if (!customerName || !phone) {
+      return renderOrderForm(res, {
+        status: 400,
         error: 'Escribe tu nombre y numero celular para continuar.',
-        success: false,
-        cartItems: selectedItems,
-        cartTotal,
-        cartCount,
-        formData: req.session.checkoutData
+        formData,
+        quantities
       });
     }
 
-    if (selectedItems.length === 0) {
-      req.session.checkoutData = { customer_name, phone };
-
-      return res.status(400).render('order', {
-        title: 'Marketplace de comida',
-        dishes,
-        error: 'Agrega al menos un plato al carrito antes de confirmar.',
-        success: false,
-        cartItems: selectedItems,
-        cartTotal,
-        cartCount,
-        formData: req.session.checkoutData
+    if (hasInvalidQuantity(quantities)) {
+      return renderOrderForm(res, {
+        status: 400,
+        error: 'Las cantidades deben ser numeros enteros mayores o iguales a 0.',
+        formData,
+        quantities
       });
     }
 
-    const client = await db.pool.connect();
+    await sheetsService.saveOrder({
+      customer_name: customerName,
+      phone,
+      total,
+      created_at: new Date().toISOString(),
+      items: selectedItems
+    });
 
-    try {
-      await client.query('BEGIN');
-
-      const orderResult = await client.query(
-        'INSERT INTO orders (customer_name, phone, total) VALUES ($1, $2, $3) RETURNING id',
-        [customer_name.trim(), phone.trim(), cartTotal]
-      );
-
-      const orderId = orderResult.rows[0].id;
-
-      for (const item of selectedItems) {
-        await client.query(
-          'INSERT INTO order_items (order_id, dish_id, quantity, unit_price) VALUES ($1, $2, $3, $4)',
-          [orderId, item.dish.id, item.quantity, item.dish.price]
-        );
-      }
-
-      await client.query('COMMIT');
-      req.session.cart = {};
-      req.session.checkoutData = {};
-
-      return res.redirect('/pedidos?success=1');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    return res.redirect('/pedidos?success=1');
   } catch (error) {
+    if (error.message.includes('GOOGLE_SHEETS_WEB_APP_URL')) {
+      return renderOrderForm(res, {
+        status: 500,
+        error: 'Falta configurar Google Sheets para guardar los pedidos.',
+        formData,
+        quantities
+      });
+    }
+
     next(error);
   }
 }
 
 module.exports = {
   showOrderForm,
-  addToCart,
-  updateCartItem,
-  removeCartItem,
-  clearCart,
   createOrder
 };

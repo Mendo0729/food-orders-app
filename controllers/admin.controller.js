@@ -1,5 +1,4 @@
-const bcrypt = require('bcrypt');
-const db = require('../config/db');
+const sheetsService = require('../services/google-sheets.service');
 
 function showLogin(req, res) {
   res.render('admin-login', {
@@ -8,39 +7,23 @@ function showLogin(req, res) {
   });
 }
 
-async function login(req, res, next) {
+function login(req, res) {
   const { username, password } = req.body;
+  const adminUser = process.env.ADMIN_USER || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
 
-  try {
-    let isValid = false;
-    let adminName = username;
-
-    const { rows } = await db.query('SELECT id, username, password_hash FROM admins WHERE username = $1', [
-      username
-    ]);
-
-    if (rows.length > 0) {
-      isValid = await bcrypt.compare(password, rows[0].password_hash);
-      adminName = rows[0].username;
-    } else if (process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) {
-      isValid = username === process.env.ADMIN_USER && password === process.env.ADMIN_PASSWORD;
-    }
-
-    if (!isValid) {
-      return res.status(401).render('admin-login', {
-        title: 'Acceso administrador',
-        error: 'Usuario o contrasena incorrectos.'
-      });
-    }
-
-    req.session.admin = {
-      username: adminName
-    };
-
-    return res.redirect('/admin');
-  } catch (error) {
-    next(error);
+  if (username !== adminUser || password !== adminPassword) {
+    return res.status(401).render('admin-login', {
+      title: 'Acceso administrador',
+      error: 'Usuario o contrasena incorrectos.'
+    });
   }
+
+  req.session.admin = {
+    username: adminUser
+  };
+
+  return res.redirect('/admin');
 }
 
 function logout(req, res, next) {
@@ -55,36 +38,22 @@ function logout(req, res, next) {
 
 async function dashboard(req, res, next) {
   try {
-    const { rows: orders } = await db.query(`
-      SELECT
-        o.id,
-        o.customer_name,
-        o.phone,
-        o.total,
-        o.created_at,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'dish', d.name,
-              'quantity', oi.quantity,
-              'unit_price', oi.unit_price
-            )
-            ORDER BY d.name
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) AS items
-      FROM orders o
-      LEFT JOIN order_items oi ON oi.order_id = o.id
-      LEFT JOIN dishes d ON d.id = oi.dish_id
-      GROUP BY o.id
-      ORDER BY o.created_at DESC
-    `);
+    const orders = await sheetsService.getOrders();
 
-    res.render('admin-dashboard', {
+    return res.render('admin-dashboard', {
       title: 'Panel administrador',
-      orders
+      orders,
+      error: null
     });
   } catch (error) {
+    if (error.message.includes('GOOGLE_SHEETS_WEB_APP_URL')) {
+      return res.render('admin-dashboard', {
+        title: 'Panel administrador',
+        orders: [],
+        error: 'Falta configurar Google Sheets para leer los pedidos.'
+      });
+    }
+
     next(error);
   }
 }

@@ -11,15 +11,19 @@
     </form>
   </div>
 
+  <% if (error) { %>
+    <div class="alert alert-warning"><%= error %></div>
+  <% } %>
+
   <div class="table-responsive dashboard-table">
     <table class="table align-middle">
       <thead>
         <tr>
           <th>Cliente</th>
           <th>Celular</th>
-          <th>Platos</th>
-          <th>Total</th>
           <th>Fecha</th>
+          <th>Productos pedidos</th>
+          <th>Total</th>
         </tr>
       </thead>
       <tbody>
@@ -33,15 +37,23 @@
           <tr>
             <td class="fw-semibold"><%= order.customer_name %></td>
             <td><%= order.phone %></td>
+            <td><%= new Date(order.created_at).toLocaleString('es-PA') %></td>
             <td>
-              <ul class="list-unstyled mb-0">
+              <div class="admin-order-list">
                 <% order.items.forEach((item) => { %>
-                  <li><%= item.dish %> x <%= item.quantity %></li>
+                  <div class="admin-order-item">
+                    <div>
+                      <strong><%= item.dish %></strong>
+                      <small><%= item.category %></small>
+                    </div>
+                    <span>Cant. <%= item.quantity %></span>
+                    <span><%= item.unit_price === null ? 'Consultar' : `$${Number(item.unit_price).toFixed(2)}` %></span>
+                    <span><%= item.subtotal === null ? 'Consultar' : `$${Number(item.subtotal).toFixed(2)}` %></span>
+                  </div>
                 <% }) %>
-              </ul>
+              </div>
             </td>
             <td class="fw-bold">$<%= Number(order.total).toFixed(2) %></td>
-            <td><%= new Date(order.created_at).toLocaleString('es-PA') %></td>
           </tr>
         <% }) %>
       </tbody>

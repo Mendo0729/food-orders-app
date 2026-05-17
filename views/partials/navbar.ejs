@@ -1,22 +1,22 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top">
+<nav class="navbar navbar-expand-lg navbar-dark site-navbar sticky-top">
   <div class="container">
-    <a class="navbar-brand fw-bold text-brand" href="/">Sabores Evento</a>
+    <a class="navbar-brand brand-lockup" href="/pedidos">
+      <img src="/img/logo.png" alt="Logo Sabores Evento" class="brand-logo">
+      <span>
+        <strong>Iglesia Episcopal de Cristo a Orillas del Mar</strong>
+        <small>Christ Church by the Sea</small>
+      </span>
+    </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Abrir menu">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="mainNavbar">
-      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-3">
         <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">Inicio</a>
+          <a class="nav-link <%= currentPath === '/pedidos' ? 'active' : '' %>" href="/pedidos">Menu</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/pedidos' ? 'active' : '' %>" href="/pedidos">Pedidos</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link <%= currentPath === '/about' ? 'active' : '' %>" href="/about">Actividad</a>
-        </li>
-        <li class="nav-item">
-          <a class="btn btn-sm btn-brand ms-lg-2" href="/admin">Admin</a>
+          <a class="nav-link" href="/admin">Admin</a>
         </li>
       </ul>
     </div>

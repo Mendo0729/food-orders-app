@@ -1,18 +1,14 @@
 # Food Orders App
 
-Aplicacion web en Node.js, Express, PostgreSQL y EJS para vender comida durante una actividad o evento. Incluye formulario de pedidos, panel administrador con sesion, dashboard de pedidos y scripts SQL para Supabase.
+Aplicacion web sencilla para tomar pedidos de comida afroantillana y guardarlos en Google Sheets.
 
 ## Tecnologias
 
 - Node.js
 - Express.js
-- PostgreSQL
 - EJS
 - Bootstrap 5
-- dotenv
-- pg
-- express-session
-- bcrypt
+- Google Sheets con Google Apps Script
 
 ## Instalacion local
 
@@ -24,12 +20,6 @@ npm install
 
 2. Copia las variables de entorno:
 
-```bash
-cp .env.example .env
-```
-
-En Windows PowerShell:
-
 ```powershell
 Copy-Item .env.example .env
 ```
@@ -38,67 +28,50 @@ Copy-Item .env.example .env
 
 ```env
 PORT=3000
-DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
 SESSION_SECRET=una-clave-larga-y-segura
 ADMIN_USER=admin
 ADMIN_PASSWORD=admin123
+GOOGLE_SHEETS_WEB_APP_URL=https://script.google.com/macros/s/TU_WEB_APP_ID/exec
 ```
 
-4. Crea las tablas ejecutando `db/schema.sql` en PostgreSQL.
+## Configurar Google Sheets
 
-5. Carga datos iniciales ejecutando `db/seed.sql`.
+1. Crea una hoja de calculo en Google Sheets.
+2. Ve a **Extensiones > Apps Script**.
+3. Pega el contenido de `google-apps-script/Code.gs`.
+4. Guarda el proyecto.
+5. Ve a **Implementar > Nueva implementacion**.
+6. Selecciona tipo **Aplicacion web**.
+7. En **Ejecutar como**, selecciona tu usuario.
+8. En **Quien tiene acceso**, selecciona **Cualquier usuario**.
+9. Copia la URL `/exec` y colócala en `GOOGLE_SHEETS_WEB_APP_URL`.
 
-6. Inicia el proyecto:
+La primera vez que se guarde o lea un pedido, el script crea una pestaña llamada `Pedidos` con los encabezados necesarios.
+
+## Ejecutar
 
 ```bash
 npm run dev
 ```
 
-La app estara disponible en `http://localhost:3000`.
+La app estara disponible en:
 
-## Conexion con Supabase
-
-1. Crea un proyecto en Supabase.
-2. Entra a **Project Settings > Database**.
-3. Copia el connection string de PostgreSQL, preferiblemente el modo URI.
-4. Reemplaza la contrasena y colocalo en `DATABASE_URL`.
-5. Abre **SQL Editor** en Supabase.
-6. Ejecuta primero `db/schema.sql`.
-7. Ejecuta despues `db/seed.sql`.
-
-Supabase suele requerir SSL. La configuracion de `config/db.js` activa SSL automaticamente cuando `DATABASE_URL` existe.
-
-## Despliegue en Render
-
-1. Sube este proyecto a GitHub.
-2. En Render, crea un nuevo **Web Service**.
-3. Conecta el repositorio.
-4. Usa esta configuracion:
-   - Runtime: Node
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-5. Agrega variables de entorno en Render:
-   - `DATABASE_URL`
-   - `SESSION_SECRET`
-   - `ADMIN_USER`
-   - `ADMIN_PASSWORD`
-   - `NODE_ENV=production`
-6. Despliega el servicio.
+```text
+http://localhost:3000
+```
 
 ## Rutas
 
-- `/` pagina principal
-- `/pedidos` marketplace de comida con carrito
-- `/about` informacion de la actividad
+- `/` redirige a `/pedidos`
+- `/pedidos` formulario de pedidos
 - `/admin/login` login administrador
-- `/admin` dashboard protegido
-- `/admin/logout` cerrar sesion
+- `/admin` dashboard protegido con pedidos leidos desde Google Sheets
 
-## Administrador inicial
+## Administrador
 
-El seed crea un administrador:
+El login usa estas variables:
 
-- Usuario: `admin`
-- Password: `admin123`
+- `ADMIN_USER`
+- `ADMIN_PASSWORD`
 
-Cambia estas credenciales para produccion. El login tambien puede validar contra `ADMIN_USER` y `ADMIN_PASSWORD` desde variables de entorno.
+Cambia esos valores antes de publicar la aplicacion.

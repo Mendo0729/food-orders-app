@@ -4,7 +4,6 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 
-const publicRoutes = require('./routes/public.routes');
 const ordersRoutes = require('./routes/orders.routes');
 const adminRoutes = require('./routes/admin.routes');
 
@@ -42,16 +41,15 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/', publicRoutes);
+app.get('/', (req, res) => {
+  res.redirect('/pedidos');
+});
+
 app.use('/pedidos', ordersRoutes);
 app.use('/admin', adminRoutes);
 
 app.use((req, res) => {
-  res.status(404).render('about', {
-    title: 'Pagina no encontrada',
-    description: 'No encontramos la pagina solicitada.',
-    isNotFound: true
-  });
+  res.redirect('/pedidos');
 });
 
 app.use((err, req, res, next) => {
