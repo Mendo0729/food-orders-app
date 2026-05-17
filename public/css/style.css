@@ -359,6 +359,39 @@ h3,
   line-height: 1.5;
 }
 
+.order-status-modal .modal-content {
+  background: var(--paper);
+  border: 2px solid rgba(217, 154, 39, 0.45);
+  border-radius: 8px;
+}
+
+.order-status-modal .modal-body {
+  padding: 2rem;
+}
+
+.order-status-icon {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto;
+  color: var(--deep);
+  background: var(--paper-2);
+  border-radius: 50%;
+  font-size: 2.5rem;
+  font-weight: 900;
+}
+
+.order-status-success {
+  color: #fff;
+  background: var(--green);
+}
+
+.order-status-error {
+  color: #fff;
+  background: var(--rust);
+}
+
 .admin-card {
   padding: 1.5rem;
 }

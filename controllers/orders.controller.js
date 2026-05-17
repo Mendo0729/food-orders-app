@@ -127,6 +127,26 @@ function showOrderForm(req, res) {
   });
 }
 
+function wantsJson(req) {
+  return req.xhr || req.get('accept')?.includes('application/json');
+}
+
+function sendOrderError(req, res, status, message, formData, quantities) {
+  if (wantsJson(req)) {
+    return res.status(status).json({
+      ok: false,
+      message
+    });
+  }
+
+  return renderOrderForm(res, {
+    status,
+    error: message,
+    formData,
+    quantities
+  });
+}
+
 async function createOrder(req, res, next) {
   const customerName = (req.body.customer_name || '').trim();
   const phone = (req.body.phone || '').trim();
@@ -138,21 +158,25 @@ async function createOrder(req, res, next) {
 
   try {
     if (!customerName || !phone) {
-      return renderOrderForm(res, {
-        status: 400,
-        error: 'Escribe tu nombre y numero celular para continuar.',
+      return sendOrderError(
+        req,
+        res,
+        400,
+        'Escribe tu nombre y numero celular para continuar.',
         formData,
         quantities
-      });
+      );
     }
 
     if (hasInvalidQuantity(quantities)) {
-      return renderOrderForm(res, {
-        status: 400,
-        error: 'Las cantidades deben ser numeros enteros mayores o iguales a 0.',
+      return sendOrderError(
+        req,
+        res,
+        400,
+        'Las cantidades deben ser numeros enteros mayores o iguales a 0.',
         formData,
         quantities
-      });
+      );
     }
 
     await sheetsService.saveOrder({
@@ -163,14 +187,30 @@ async function createOrder(req, res, next) {
       items: selectedItems
     });
 
+    if (wantsJson(req)) {
+      return res.json({
+        ok: true,
+        message: 'Pedido confirmado satisfactoriamente.'
+      });
+    }
+
     return res.redirect('/pedidos?success=1');
   } catch (error) {
     if (error.message.includes('GOOGLE_SHEETS_WEB_APP_URL')) {
-      return renderOrderForm(res, {
-        status: 500,
-        error: 'Falta configurar Google Sheets para guardar los pedidos.',
+      return sendOrderError(
+        req,
+        res,
+        500,
+        'Falta configurar Google Sheets para guardar los pedidos.',
         formData,
         quantities
+      );
+    }
+
+    if (wantsJson(req)) {
+      return res.status(500).json({
+        ok: false,
+        message: 'No se pudo guardar el pedido. Intenta nuevamente.'
       });
     }
 
